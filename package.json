@@ -1,0 +1,17 @@
+{
+  "name": "kebab",
+  "version": "1.0.0",
+  "description": "A minimal frontend framework created for fun",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Wael Fadlallah",
+  "license": "ISC",
+  "dependencies": {
+    "babel": "^6.23.0"
+  },
+  "devDependencies": {
+    "@babel/standalone": "^7.18.11"
+  }
+}
