@@ -22,23 +22,33 @@ function createTextElement(value) {
   };
 }
 
-function render(element, container) {
-  const node =
-    element.type === "TEXT_ELEMENT"
+function createDom(fiber) {
+  const dom =
+    fiber.type === "TEXT_ELEMENT"
       ? document.createTextNode(element)
       : document.createElement(element.type);
 
   const isProperty = (key) => key !== "children";
 
-  Object.keys(element.props)
+  Object.keys(fiber.props)
     .filter(isProperty)
-    .forEach((name) => (node[name] = element.props[name]));
+    .forEach((name) => (dom[name] = fiber.props[name]));
 
-  if (element.props.children.length > 0) {
-    element.props.children.map((child) => render(child, node));
-  }
+  return dom;
+}
 
-  container.appendChild(node);
+function render(element, container) {
+  // if (element.props.children.length > 0) {
+  //   element.props.children.map((child) => render(child, node));
+  // }
+  // container.appendChild(node);
+
+  nextUnitOfWork = {
+    don: container,
+    props: {
+      children: [element],
+    },
+  };
 }
 
 let nextUnitOfWork = null;
@@ -55,8 +65,57 @@ function workLoop(deadline) {
 }
 requestIdleCallback(workLoop);
 
-function performUnitOfWork(nextUnitOfWork) {
-  // TODO
+function performUnitOfWork(fiber) {
+  /**
+   * Add the dom node to the fiber
+   */
+  if (!fiber.dom) {
+    fiber.dom = createDom(fiber);
+  }
+
+  if (fiber.parent) {
+    fiber.parent.dom.appendChild(fiber.dom);
+  }
+
+  /**
+   * Loop through the children and create a new fiber for each of them and assign them to the current fiber
+   */
+  const elements = fiber.props.children;
+  let prevSibling = null;
+  for (let index = 0; index < elements.length; index++) {
+    const element = elements[index];
+
+    const newFiber = {
+      type: element.type,
+      props: element.props,
+      parent: fiber,
+      dom: null,
+    };
+
+    if (index === 0) {
+      fiber.child = newFiber;
+    } else {
+      prevSibling.sibling = newFiber;
+    }
+    prevSibling = newFiber;
+  }
+
+  /**
+   * Return the next unit of work
+   * First check the child if any, then check for a sibling or parent sibling(uncle) while navigating the tree backwards
+   */
+  if (fiber.child) {
+    return fiber.child;
+  }
+
+  let nextFiber = fiber;
+
+  while (nextFiber) {
+    if (nextFiber.sibling) {
+      return nextFiber.sibling;
+    }
+    nextFiber = nextFiber.parent;
+  }
 }
 
 const Kebab = {
