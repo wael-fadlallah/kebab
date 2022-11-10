@@ -71,7 +71,6 @@ function updateDom(dom, prevProps, nextProps) {
 function commitRoot() {
   deletions.forEach(commitWork);
   commitWork(wipRoot.child);
-  debugger;
   currentRoot = wipRoot;
   wipRoot = null;
 }
@@ -222,7 +221,8 @@ const Kebab = {
 
 const element = (
   <div id="Test">
-    <p new={true}>Test</p>
+    <p style={'color: "red"'}>Test</p>
+    <p>Test</p>
   </div>
 );
 
