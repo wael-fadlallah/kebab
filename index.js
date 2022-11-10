@@ -71,6 +71,7 @@ function updateDom(dom, prevProps, nextProps) {
 function commitRoot() {
   deletions.forEach(commitWork);
   commitWork(wipRoot.child);
+  debugger;
   currentRoot = wipRoot;
   wipRoot = null;
 }
@@ -89,43 +90,9 @@ function commitWork(fiber) {
   } else if (fiber.effectTag === "DELETION") {
     domParent.removeChild(fiber.dom);
   }
-
   commitWork(fiber.child);
   commitWork(fiber.sibling);
 }
-
-function render(element, container) {
-  wipRoot = {
-    dom: container,
-    props: {
-      children: [element],
-    },
-    alternate: currentRoot,
-  };
-  deletions = [];
-  nextUnitOfWork = wipRoot;
-}
-
-let nextUnitOfWork = null;
-let currentRoot = null;
-let wipRoot = null;
-let deletions = null;
-
-function workLoop(deadline) {
-  let shouldYield = false;
-
-  while (nextUnitOfWork && !shouldYield) {
-    nextUnitOfWork = performUnitOfWork(nextUnitOfWork);
-
-    shouldYield = deadline.timeRemaining() < 1;
-  }
-
-  if (!nextUnitOfWork && wipRoot) {
-    commitRoot();
-  }
-  requestIdleCallback(workLoop);
-}
-requestIdleCallback(workLoop);
 
 function performUnitOfWork(fiber) {
   /**
@@ -139,24 +106,7 @@ function performUnitOfWork(fiber) {
    * Loop through the children and create a new fiber for each of them and assign them to the current fiber
    */
   const elements = fiber.props.children;
-  let prevSibling = null;
-  for (let index = 0; index < elements.length; index++) {
-    const element = elements[index];
-
-    const newFiber = {
-      type: element.type,
-      props: element.props,
-      parent: fiber,
-      dom: null,
-    };
-
-    if (index === 0) {
-      fiber.child = newFiber;
-    } else {
-      prevSibling.sibling = newFiber;
-    }
-    prevSibling = newFiber;
-  }
+  reconcileChildren(fiber, elements);
 
   /**
    * Return the next unit of work
@@ -178,6 +128,7 @@ function performUnitOfWork(fiber) {
 
 function reconcileChildren(wipFiber, elements) {
   let index = 0;
+  let prevSibling = null;
   let oldFiber = wipFiber.alternate && wipFiber.alternate.child;
 
   while (index < elements.length || oldFiber != null) {
@@ -216,8 +167,54 @@ function reconcileChildren(wipFiber, elements) {
       oldFiber.effectTag = "DELETION";
       deletions.push(oldFiber);
     }
+
+    if (oldFiber) {
+      oldFiber = oldFiber.sibling;
+    }
+
+    if (index === 0) {
+      wipFiber.child = newFiber;
+    } else {
+      prevSibling.sibling = newFiber;
+    }
+    prevSibling = newFiber;
+    index++;
   }
 }
+
+let nextUnitOfWork = null;
+let currentRoot = null;
+let wipRoot = null;
+let deletions = null;
+
+function workLoop(deadline) {
+  let shouldYield = false;
+
+  while (nextUnitOfWork && !shouldYield) {
+    nextUnitOfWork = performUnitOfWork(nextUnitOfWork);
+
+    shouldYield = deadline.timeRemaining() < 1;
+  }
+
+  if (!nextUnitOfWork && wipRoot) {
+    commitRoot();
+  }
+  requestIdleCallback(workLoop);
+}
+requestIdleCallback(workLoop);
+
+function render(element, container) {
+  wipRoot = {
+    dom: container,
+    props: {
+      children: [element],
+    },
+    alternate: currentRoot,
+  };
+  deletions = [];
+  nextUnitOfWork = wipRoot;
+}
+
 const Kebab = {
   createElement,
   render,
