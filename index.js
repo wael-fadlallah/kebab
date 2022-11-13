@@ -12,5 +12,10 @@ const element = (
   </div>
 );
 
+const App = () => {
+  return <h2>Hello functional component</h2>;
+};
+
+const component = <App />;
 const container = document.getElementById("root");
-Kebab.render(element, container);
+Kebab.render(component, container);
